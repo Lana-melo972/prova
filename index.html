@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Controle de Estoque — Dashboard</title>
+
+  <style>
+    :root{
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --primary: #2563eb;
+      --primary-600:#1e4fc4;
+      --danger:#e11d48;
+      --muted:#6b7280;
+      --success:#10b981;
+      --glass: rgba(255,255,255,0.7);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg,#eef2ff 0%,var(--bg) 100%);
+      color:#0f172a;
+      padding:28px;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+    }
+
+    header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      margin-bottom:18px;
+    }
+    header h1{
+      margin:0;
+      font-size:22px;
+      letter-spacing:-0.2px;
+    }
+    .top-cards{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .card{
+      background:var(--card);
+      padding:14px 18px;
+      border-radius:12px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+      min-width:160px;
+    }
+    .card strong{display:block;font-size:18px;}
+    .card span{color:var(--muted);font-size:13px}
+
+    main{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:18px;
+      margin-top:14px;
+    }
+
+    /* form card */
+    .form-card{
+      background:var(--card);
+      padding:18px;
+      border-radius:12px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+    }
+    .form-card h2{margin:0 0 8px 0;font-size:18px}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:10px}
+    input, select, textarea{
+      width:100%;
+      padding:10px 12px;
+      margin-top:6px;
+      border-radius:8px;
+      border:1px solid #e6e9ef;
+      background:#fff;
+      font-size:14px;
+    }
+    .row {display:flex; gap:8px}
+    .row > *{flex:1}
+
+    .btn{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:0;
+      background:var(--primary);
+      color:white;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .btn.secondary{background:#f3f4f6;color:#111;border:1px solid #e6e9ef}
+
+    /* table card */
+    .table-card{
+      background:var(--card);
+      padding:14px;
+      border-radius:12px;
+      box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+      min-height:400px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:14px;
+    }
+    thead th{
+      text-align:left;
+      padding:10px 8px;
+      font-size:13px;
+      color:var(--muted);
+      border-bottom:1px solid #eef2f6;
+    }
+    tbody td{
+      padding:10px 8px;
+      border-bottom:1px dashed #f1f5f9;
+      vertical-align:middle;
+    }
+    .actions{display:flex; gap:8px}
+    .pill{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px}
+    .low{background: #fff1f2;border:1px solid #fecaca;color:var(--danger)}
+    .ok{background:#ecfdf5;border:1px solid #bbf7d0;color:var(--success)}
+
+    /* small modal */
+    .modal {
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background: rgba(2,6,23,0.45);
+    }
+    .modal.show{display:flex}
+    .modal .panel{
+      width:420px;background:var(--card); padding:18px; border-radius:12px; box-shadow:0 10px 30px rgba(2,6,23,0.3);
+    }
+
+    .small{font-size:13px;color:var(--muted)}
+    .alert-top{margin-top:12px;background:linear-gradient(90deg,#fff7ed,#fff);border-left:4px solid #f97316;padding:10px 12px;border-radius:8px;color:#92400e}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Controle de Estoque — Produtos de Limpeza</h1>
+      <div class="top-cards">
+        <div class="card">
+          <strong id="totalProdutos">0</strong>
+          <span>Total de produtos</span>
+        </div>
+        <div class="card">
+          <strong id="alertCount">0</strong>
+          <span>Produtos abaixo do mínimo</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Formulário -->
+      <div class="form-card">
+        <h2>Novo Produto</h2>
+        <form id="formProduto">
+          <label>Nome</label>
+          <input id="nome" required />
+
+          <div class="row">
+            <div>
+              <label>Quantidade</label>
+              <input id="quantidade" type="number" required min="0" />
+            </div>
+            <div>
+              <label>Estoque mínimo</label>
+              <input id="estoqueMinimo" type="number" required min="0" />
+            </div>
+          </div>
+
+          <label>Marca (opcional)</label>
+          <input id="marca" placeholder="Marca" />
+
+          <label>Volume (opcional)</label>
+          <input id="volume" placeholder="500 ml / 1 L" />
+
+          <label>Aplicação</label>
+          <select id="aplicacao">
+            <option value="doméstica">Doméstica</option>
+            <option value="industrial">Industrial</option>
+            <option value="hospitalar">Hospitalar</option>
+          </select>
+
+          <label>Composição / Fragrância (opcional)</label>
+          <input id="composicao" placeholder="Ex: Lauril sulfato, fragrância limão" />
+
+          <button class="btn" type="submit">Cadastrar produto</button>
+        </form>
+
+        <div style="margin-top:12px;">
+          <button id="refreshBtn" class="btn secondary">Atualizar lista</button>
+        </div>
+
+        <p class="small" style="margin-top:8px">Observação: Dados são salvos em memória no servidor (recomeçar o servidor limpa os dados).</p>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <h2 style="margin-top:0;margin-bottom:8px">Estoque</h2>
+        <div id="alertsArea" style="margin-bottom:12px"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Quantidade</th>
+              <th>Estoque mínimo</th>
+              <th>Aplicação</th>
+              <th style="width:160px">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyProdutos">
+            <!-- preenchido via JS -->
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal entrada/saida -->
+  <div id="modal" class="modal" role="dialog" aria-hidden="true">
+    <div class="panel">
+      <h3 id="modalTitle">Registrar</h3>
+      <p class="small" id="modalProdName"></p>
+
+      <label>Quantidade</label>
+      <input id="modalQuantidade" type="number" min="1" />
+
+      <label>Responsável</label>
+      <input id="modalResp" placeholder="Nome do responsável" />
+
+      <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end">
+        <button id="modalCancel" class="btn secondary">Cancelar</button>
+        <button id="modalConfirm" class="btn">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://localhost:3000";
+    const tbody = document.getElementById('tbodyProdutos');
+    const totalProdutosEl = document.getElementById('totalProdutos');
+    const alertCountEl = document.getElementById('alertCount');
+    const alertsArea = document.getElementById('alertsArea');
+
+    // Modal state
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalProdName = document.getElementById('modalProdName');
+    const modalQuantidade = document.getElementById('modalQuantidade');
+    const modalResp = document.getElementById('modalResp');
+    const modalConfirm = document.getElementById('modalConfirm');
+    const modalCancel = document.getElementById('modalCancel');
+
+    let currentOp = null; // {tipo: 'entrada'|'saida', nome: 'Detergente'}
+
+    // carregar lista de produtos
+    async function carregarProdutos(){
+      try {
+        const res = await fetch(API + '/produtos');
+        const produtos = await res.json();
+
+        // atualizar contadores e area de alertas
+        totalProdutosEl.textContent = produtos.length;
+        const abaixo = produtos.filter(p => (Number(p.quantidade) < Number(p.estoqueMinimo)));
+        alertCountEl.textContent = abaixo.length;
+
+        // mostrar alerta no topo
+        if(abaixo.length > 0){
+          alertsArea.innerHTML = `<div class="alert-top">Atenção: ${abaixo.length} produto(s) com estoque abaixo do mínimo.</div>`;
+        } else {
+          alertsArea.innerHTML = '';
+        }
+
+        tbody.innerHTML = '';
+        produtos.forEach(p => {
+          const tr = document.createElement('tr');
+
+          const low = Number(p.quantidade) < Number(p.estoqueMinimo);
+          tr.innerHTML = `
+            <td>
+              <strong>${escapeHtml(p.nome)}</strong>
+              <div class="small" style="color:var(--muted)">${p.marca ? escapeHtml(p.marca) + ' • ' : ''}${p.volume ? escapeHtml(p.volume) + ' • ' : ''}${p.composicao ? escapeHtml(p.composicao) : ''}</div>
+            </td>
+            <td>${Number(p.quantidade)}</td>
+            <td>${Number(p.estoqueMinimo)}</td>
+            <td>${escapeHtml(p.aplicacao || '')}</td>
+            <td>
+              <div class="actions">
+                <button class="btn secondary" data-action="entrada" data-nome="${encodeURIComponent(p.nome)}">+ Entrada</button>
+                <button class="btn" style="background:#ef4444;border:0" data-action="saida" data-nome="${encodeURIComponent(p.nome)}">- Saída</button>
+              </div>
+            </td>
+          `;
+
+          if(low){
+            const badge = document.createElement('div');
+            badge.className = 'pill low';
+            badge.style.marginTop = '8px';
+            badge.textContent = 'Abaixo do mínimo';
+            tr.querySelector('td').appendChild(badge);
+          } else {
+            const ok = document.createElement('div');
+            ok.className = 'pill ok';
+            ok.style.marginTop = '8px';
+            ok.textContent = 'OK';
+            tr.querySelector('td').appendChild(ok);
+          }
+
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error('Erro carregando produtos', err);
+        alert('Erro ao carregar produtos. Veja console.');
+      }
+    }
+
+    // escape para evitar problemas com caracteres
+    function escapeHtml(text){
+      if(!text) return '';
+      return text.replace(/[&<>"'`]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;", "`":"&#96;"}[s]));
+    }
+
+    // cadastrar novo produto
+    document.getElementById('formProduto').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('nome').value.trim();
+      const quantidade = Number(document.getElementById('quantidade').value) || 0;
+      const estoqueMinimo = Number(document.getElementById('estoqueMinimo').value) || 0;
+      const marca = document.getElementById('marca').value.trim();
+      const volume = document.getElementById('volume').value.trim();
+      const aplicacao = document.getElementById('aplicacao').value;
+      const composicao = document.getElementById('composicao').value.trim();
+
+      const body = { nome, quantidade, estoqueMinimo, marca, volume, aplicacao, composicao };
+
+      const res = await fetch(API + '/produtos', {
+        method:'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if(res.ok){
+        await carregarProdutos();
+        e.target.reset();
+        alert(data.mensagem || 'Produto cadastrado');
+      } else {
+        alert(data.mensagem || 'Erro ao cadastrar');
+      }
+    });
+
+    // Delegation: lidar com botões de entrada/saída
+    document.getElementById('tbodyProdutos').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button');
+      if(!btn) return;
+      const action = btn.dataset.action;
+      const nome = decodeURIComponent(btn.dataset.nome);
+      if(action === 'entrada' || action === 'saida'){
+        openModal(action, nome);
+      }
+    });
+
+    // abrir modal
+    function openModal(tipo, nome){
+      currentOp = { tipo, nome };
+      modalTitle.textContent = tipo === 'entrada' ? 'Registrar Entrada' : 'Registrar Saída';
+      modalProdName.textContent = nome;
+      modalQuantidade.value = 1;
+      modalResp.value = '';
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden','false');
+      modalQuantidade.focus();
+    }
+
+    modalCancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if(e.target === modal) closeModal();
+    });
+
+    function closeModal(){
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden','true');
+      currentOp = null;
+    }
+
+    // confirmar no modal
+    modalConfirm.addEventListener('click', async () => {
+      const qtd = Number(modalQuantidade.value);
+      const resp = modalResp.value.trim() || 'Não informado';
+      if(!currentOp || !qtd || qtd <= 0){ alert('Informe quantidade válida'); return; }
+
+      const endpoint = currentOp.tipo === 'entrada' ? '/estoque/entrada' : '/estoque/saida';
+      const body = { nome: currentOp.nome, quantidade: qtd, responsavel: resp };
+
+      try {
+        const res = await fetch(API + endpoint, {
+          method: 'PUT',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if(!res.ok){
+          alert(data.mensagem || 'Erro na operação');
+        } else {
+          await carregarProdutos();
+          closeModal();
+          alert(data.mensagem || 'Operação realizada');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao comunicar com API');
+      }
+    });
+
+    // refresh button
+    document.getElementById('refreshBtn').addEventListener('click', carregarProdutos);
+
+    // carregar inicialmente
+    carregarProdutos();
+  </script>
+</body>
+</html>
